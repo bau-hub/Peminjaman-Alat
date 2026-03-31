@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Peminjaman Alat - UKWK Malang</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF untuk export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS untuk export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .sidebar-item {
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-item:hover, .sidebar-item.active {
+            transform: translateX(5px);
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .status-pinjam {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+        
+        .status-kembali {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+        }
+        
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1d4ed8;
+        }
+        
+        /* Barang Card Selection */
+        .barang-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .barang-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .barang-card.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        
+        .barang-card.selected .check-icon {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .check-icon {
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+        
+        /* Quantity Selector */
+        .qty-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        
+        .qty-btn:hover {
+            background: #e5e7eb;
+        }
+        
+        .qty-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Selected Items Display */
+        .selected-item-tag {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        /* Mobile Bottom Navigation */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            display: none;
+        }
+        
+        .mobile-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            color: #6b7280;
+            transition: all 0.3s;
+            font-size: 11px;
+        }
+        
+        .mobile-nav-item.active {
+            color: #3b82f6;
+        }
+        
+        .mobile-nav-item i {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+        
+        /* Landscape Orientation Styles */
+        .landscape-layout {
+            display: flex;
+            flex-direction: row;
+        }
+        
+        .landscape-sidebar {
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+        
+        .landscape-main {
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        /* Portrait Orientation Styles */
+        .portrait-layout {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Orientation Detection */
+        @media screen and (orientation: landscape) and (max-height: 600px) {
+            .orientation-adaptive {
+                flex-direction: row !important;
+            }
+            
+            .sidebar-adaptive {
+                width: 240px !important;
+                transform: none !important;
+                position: relative !important;
+                height: auto !important;
+            }
+            
+            .main-adaptive {
+                flex: 1;
+            }
+            
+            .stats-grid-landscape {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+            
+            .form-grid-landscape {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .barang-grid-landscape {
+                grid-template-columns: repeat(7, 1fr) !important;
+            }
+            
+            .hide-in-landscape-mobile {
+                display: none !important;
+            }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            aside {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                position: fixed;
+                z-index: 40;
+                height: 100vh;
+            }
+            
+            aside.open {
+                transform: translateX(0);
+            }
+            
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 35;
+            }
+            
+            .mobile-overlay.show {
+                display: block;
+            }
+            
+            .mobile-nav {
+                display: flex;
+            }
+            
+            main {
+                padding-bottom: 70px;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .barang-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Landscape phone optimizations */
+        @media screen and (max-height: 500px) and (orientation: landscape) {
+            .compact-landscape {
+                padding: 0.5rem !important;
+            }
+            
+            .compact-landscape-header {
+                padding: 0.5rem 1rem !important;
+            }
+            
+            .compact-stats {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 0.5rem !important;
+            }
+            
+            .compact-stats .card-hover {
+                padding: 0.75rem !important;
+            }
+            
+            .compact-stats h3 {
+                font-size: 1.25rem !important;
+            }
+            
+            .hide-landscape-compact {
+                display: none !important;
+            }
+            
+            .mobile-nav {
+                display: none !important;
+            }
+            
+            main {
+                padding-bottom: 0 !important;
+            }
+        }
+        
+        /* Tablet Landscape */
+        @media screen and (min-width: 1024px) and (orientation: landscape) {
+            .tablet-landscape-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+            }
+        }
+        
+        /* Touch-friendly buttons */
+        .btn-touch {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        /* Prevent text selection on mobile */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Orientation Indicator */
+        .orientation-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            z-index: 100;
+            display: none;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        .orientation-indicator.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Orientation Change Indicator -->
+    <div id="orientation-indicator" class="orientation-indicator">
+        <i class="fas fa-sync-alt fa-spin mb-2" style="font-size: 2rem;"></i>
+        <p>Menyesuaikan tampilan...</p>
+    </div>
+
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay" onclick="toggleSidebar()"></div>
+
+    <div id="app-container" class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-72 gradient-bg text-white shadow-2xl flex flex-col sidebar-adaptive">
+            <!-- Logo Section -->
+            <div class="p-6 border-b border-blue-400/30">
+                <div class="flex items-center gap-4 mb-4">
+                    <img src="https://widyakarya.ac.id/wp-content/uploads/2017/05/ukwk.png" 
+                         alt="Logo UKWK" 
+                         class="w-16 h-16 object-contain bg-white rounded-lg p-1 shadow-lg">
+                    <div>
+                        <h1 class="text-sm font-bold leading-tight">Universitas Katolik<br>Widya Karya Malang</h1>
+                        <p class="text-xs text-blue-200 mt-1">Sistem Peminjaman Alat</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu -->
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <button onclick="showPage('dashboard')" id="nav-dashboard" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-all active">
+                    <i class="fas fa-home text-xl"></i>
+                    <span class="font-medium">Dashboard</span>
+                </button>
+                
+                <button onclick="showPage('peminjaman')" id="nav-peminjaman" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-all">
+                    <i class="fas fa-hand-holding text-xl"></i>
+                    <span class="font-medium">Data Peminjaman</span>
+                </button>
+                
+                <button onclick="showPage('pengembalian')" id="nav-pengembalian" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-all">
+                    <i class="fas fa-undo text-xl"></i>
+                    <span class="font-medium">Data Pengembalian</span>
+                </button>
+                
+                <button onclick="showPage('laporan')" id="nav-laporan" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-all">
+                    <i class="fas fa-print text-xl"></i>
+                    <span class="font-medium">Cetak Laporan</span>
+                </button>
+                
+                <button onclick="showPage('qrcode')" id="nav-qrcode" class="sidebar-item w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/10 transition-all">
+                    <i class="fas fa-qrcode text-xl"></i>
+                    <span class="font-medium">QR Code Akses</span>
+                </button>
+            </nav>
+
+            <!-- Info Footer -->
+            <div class="p-4 border-t border-blue-400/30 text-xs text-blue-100">
+                <p class="mb-1"><i class="fas fa-map-marker-alt mr-2"></i>Jl. Bondowoso No. 2</p>
+                <p class="mb-1">Gadingkasri, Klojen, Malang 65115</p>
+                <p><i class="fas fa-phone mr-2"></i>(0341) 553171 ext. 102</p>
+                <p class="mt-2 text-blue-200">Biro Administrasi Umum</p>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 flex flex-col main-adaptive">
+            <!-- Header -->
+            <header class="glass-effect sticky top-0 z-40 px-4 md:px-8 py-4 shadow-sm flex justify-between items-center compact-landscape-header">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleSidebar()" class="lg:hidden btn-touch flex items-center justify-center text-gray-600">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 id="page-title" class="text-xl md:text-2xl font-bold text-gray-800">Dashboard</h2>
+                        <p class="text-xs md:text-sm text-gray-500" id="current-date"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 md:gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-semibold text-gray-700">Biro Administrasi Umum</p>
+                        <p class="text-xs text-gray-500">Sistem Peminjaman Alat</p>
+                    </div>
+                    <div class="w-10 h-10 gradient-bg rounded-full flex items-center justify-center text-white">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Container -->
+            <div class="p-4 md:p-8 flex-1 compact-landscape">
+                
+                <!-- Dashboard Page -->
+                <div id="dashboard" class="page animate-fade-in">
+                    <!-- Stats Cards -->
+                    <div class="stats-grid grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8 compact-stats">
+                        <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg card-hover border-l-4 border-blue-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-xs md:text-sm mb-1">Total Peminjaman</p>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="stat-total">0</h3>
+                                </div>
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                    <i class="fas fa-clipboard-list text-lg md:text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg card-hover border-l-4 border-yellow-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-xs md:text-sm mb-1">Sedang Dipinjam</p>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="stat-dipinjam">0</h3>
+                                </div>
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 rounded-xl flex items-center justify-center text-yellow-600">
+                                    <i class="fas fa-clock text-lg md:text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg card-hover border-l-4 border-green-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-xs md:text-sm mb-1">Sudah Kembali</p>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="stat-kembali">0</h3>
+                                </div>
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+                                    <i class="fas fa-check-circle text-lg md:text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-2xl p-4 md:p-6 shadow-lg card-hover border-l-4 border-purple-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-gray-500 text-xs md:text-sm mb-1">Barang Tersedia</p>
+                                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800" id="stat-tersedia">0</h3>
+                                </div>
+                                <div class="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
+                                    <i class="fas fa-box text-lg md:text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Peminjaman -->
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 md:mb-8">
+                        <div class="gradient-bg px-4 md:px-6 py-4">
+                            <h3 class="text-white font-semibold text-base md:text-lg flex items-center gap-2">
+                                <i class="fas fa-plus-circle"></i>
+                                Form Peminjaman Baru
+                            </h3>
+                        </div>
+                        
+                        <div class="p-4 md:p-6">
+                            <form id="form-peminjaman" class="form-grid grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Panggilan</label>
+                                        <input type="text" id="nama" required 
+                                               class="w-full px-4 py-3 rounded-xl border border-gray-300 input-focus focus:border-blue-500 outline-none transition-all text-base"
+                                               placeholder="Masukkan nama panggilan">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">NIM</label>
+                                        <input type="text" id="nim" required 
+                                               class="w-full px-4 py-3 rounded-xl border border-gray-300 input-focus focus:border-blue-500 outline-none transition-all text-base"
+                                               placeholder="Masukkan NIM">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">No. WhatsApp</label>
+                                        <input type="tel" id="wa" required 
+                                               class="w-full px-4 py-3 rounded-xl border border-gray-300 input-focus focus:border-blue-500 outline-none transition-all text-base"
+                                               placeholder="08xxxxxxxxxx">
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <!-- Dropdown Ruangan -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Ruangan</label>
+                                        <select id="ruangan" required 
+                                                class="w-full px-4 py-3 rounded-xl border border-gray-300 input-focus focus:border-blue-500 outline-none transition-all bg-white text-base">
+                                            <option value="">-- Pilih Ruangan --</option>
+                                            <option value="Ruang 1.12">Ruang 1.12</option>
+                                            <option value="Ruang 1.17">Ruang 1.17</option>
+                                            <option value="Ruang 1.18/Lab Mesin">Ruang 1.18/Lab Mesin</option>
+                                            <option value="Ruang 1.20/Lab Bahasa">Ruang 1.20/Lab Bahasa</option>
+                                            <option value="Ruang 1.21/Lab Beton">Ruang 1.21/Lab Beton</option>
+                                            <option value="Ruang 2.2">Ruang 2.2</option>
+                                            <option value="Ruang 2.3">Ruang 2.3</option>
+                                            <option value="Ruang 2.4">Ruang 2.4</option>
+                                            <option value="Ruang 2.5">Ruang 2.5</option>
+                                            <option value="Ruang 2.6">Ruang 2.6</option>
+                                            <option value="Ruang Lab Sistem Informasi">Ruang Lab Sistem Informasi</option>
+                                            <option value="Ruang Lab Pengolahan/Kimia">Ruang Lab Pengolahan/Kimia</option>
+                                            <option value="Ruang 2.11/Rapat Dosen">Ruang 2.11/Rapat Dosen</option>
+                                            <option value="Ruang 2.12">Ruang 2.12</option>
+                                            <option value="Ruang 2.13">Ruang 2.13</option>
+                                            <option value="Ruang 2.14">Ruang 2.14</option>
+                                            <option value="Ruang Aula St. Thomas Aquino">Ruang Aula St. Thomas Aquino</option>
+                                            <option value="Ruang 3.1">Ruang 3.1</option>
+                                            <option value="Ruang 3.2">Ruang 3.2</option>
+                                            <option value="Ruang 3.3">Ruang 3.3</option>
+                                            <option value="Ruang Lab Komputer FEB">Ruang Lab Komputer FEB</option>
+                                            <option value="Ruang Lab Manual FEB">Ruang Lab Manual FEB</option>
+                                            <option value="Ruang Perpustakaan">Ruang Perpustakaan</option>
+                                            <option value="Ruang Serbaguna Lantai 4">Ruang Serbaguna Lantai 4</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Jam Pinjam</label>
+                                        <input type="time" id="jam-pinjam" required 
+                                               class="w-full px-4 py-3 rounded-xl border border-gray-300 input-focus focus:border-blue-500 outline-none transition-all text-base">
+                                    </div>
+                                    
+                                    <!-- Display Selected Barang -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Barang Dipilih</label>
+                                        <div id="selected-barang-display" class="min-h-[50px] p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap gap-2">
+                                            <span class="text-gray-400 text-sm italic">Belum memilih barang</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <!-- Pilih Barang Section -->
+                            <div class="mt-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-3">Pilih Barang (Bisa lebih dari 1)</label>
+                                <div class="barang-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4" id="barang-selection-container">
+                                    <!-- Generated by JS -->
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 flex justify-end">
+                                <button onclick="tambahPeminjaman()" 
+                                        class="gradient-bg text-white px-6 md:px-8 py-3 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all flex items-center gap-2 btn-touch w-full md:w-auto justify-center">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Tambah Peminjaman</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stok Barang -->
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <div class="gradient-bg px-4 md:px-6 py-4">
+                            <h3 class="text-white font-semibold text-base md:text-lg flex items-center gap-2">
+                                <i class="fas fa-boxes"></i>
+                                Stok Barang Tersedia
+                            </h3>
+                        </div>
+                        <div class="p-4 md:p-6">
+                            <div class="barang-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4" id="stok-container">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Peminjaman Page -->
+                <div id="peminjaman" class="page hidden animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <div class="gradient-bg px-4 md:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <h3 class="text-white font-semibold text-base md:text-lg flex items-center gap-2">
+                                <i class="fas fa-list"></i>
+                                Data Peminjaman Aktif
+                            </h3>
+                            <button onclick="reminderAllWA()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-all flex items-center gap-2 btn-touch w-full sm:w-auto justify-center">
+                                <i class="fab fa-whatsapp"></i>
+                                <span>Reminder Semua</span>
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto -mx-4 md:mx-0">
+                            <div class="inline-block min-w-full align-middle">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">NIM</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Barang</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Ruangan</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Jam</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Status</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabel-peminjaman" class="divide-y divide-gray-100">
+                                        <!-- Generated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Pengembalian Page -->
+                <div id="pengembalian" class="page hidden animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <div class="gradient-bg px-4 md:px-6 py-4">
+                            <h3 class="text-white font-semibold text-base md:text-lg flex items-center gap-2">
+                                <i class="fas fa-history"></i>
+                                Riwayat Pengembalian
+                            </h3>
+                        </div>
+                        
+                        <div class="overflow-x-auto -mx-4 md:mx-0">
+                            <div class="inline-block min-w-full align-middle">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">NIM</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Barang</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Ruangan</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Pinjam</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Kembali</th>
+                                            <th class="px-4 md:px-6 py-3 md:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Durasi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabel-pengembalian" class="divide-y divide-gray-100">
+                                        <!-- Generated by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Laporan Page -->
+                <div id="laporan" class="page hidden animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+                        <div class="gradient-bg px-4 md:px-6 py-4">
+                            <h3 class="text-white font-semibold text-base md:text-lg flex items-center gap-2">
+                                <i class="fas fa-file-export"></i>
+                                Cetak Laporan
+                            </h3>
+                        </div>
+                        
+                        <div class="p-4 md:p-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6">
+                                <div class="p-4 md:p-6 border-2 border-dashed border-blue-300 rounded-2xl text-center hover:bg-blue-50 transition-all cursor-pointer btn-touch" onclick="exportPDF()">
+                                    <i class="fas fa-file-pdf text-4xl md:text-6xl text-red-500 mb-4"></i>
+                                    <h4 class="text-base md:text-lg font-semibold text-gray-800 mb-2">Export PDF</h4>
+                                    <p class="text-xs md:text-sm text-gray-500">Cetak laporan dengan kop surat resmi UKWK</p>
+                                </div>
+                                
+                                <div class="p-4 md:p-6 border-2 border-dashed border-green-300 rounded-2xl text-center hover:bg-green-50 transition-all cursor-pointer btn-touch" onclick="exportExcel()">
+                                    <i class="fas fa-file-excel text-4xl md:text-6xl text-green-600 mb-4"></i>
+                                    <h4 class="text-base md:text-lg font-semibold text-gray-800 mb-2">Export Excel</h4>
+                                    <p class="text-xs md:text-sm text-gray-500">Download data dalam format Excel</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview Laporan -->
+                            <div id="preview-laporan" class="border rounded-xl p-4 md:p-8 bg-white overflow-x-auto">
+                                <div class="text-center mb-8 min-w-[600px]">
+                                    <img src="https://widyakarya.ac.id/wp-content/uploads/2017/05/ukwk.png" class="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4">
+                                    <h2 class="text-base md:text-xl font-bold uppercase">Universitas Katolik Widya Karya Malang</h2>
+                                    <p class="text-xs md:text-sm">Jl. Bondowoso No. 2, Gadingkasri, Klojen, Malang 65115</p>
+                                    <p class="text-xs md:text-sm">Telp: (0341) 553171 ext. 102</p>
+                                    <hr class="my-4 border-2 border-black">
+                                    <h3 class="text-sm md:text-lg font-bold underline">LAPORAN PEMINJAMAN ALAT</h3>
+                                </div>
+                                
+                                <table class="w-full border-collapse border border-black mb-8 text-xs md:text-sm min-w-[600px]">
+                                    <thead>
+                                        <tr class="bg-gray-100">
+                                            <th class="border border-black px-2 md:px-3 py-2">No</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">Nama</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">NIM</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">Barang</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">Ruangan</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">Jam Pinjam</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">Jam Kembali</th>
+                                            <th class="border border-black px-2 md:px-3 py-2">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-tbody">
+                                        <!-- Generated by JS -->
+                                    </tbody>
+                                </table>
+                                
+                                <!-- Tanda Tangan - Ka. Biro di Kiri, Kabag Umum di Kanan -->
+                                <div class="flex justify-between mt-12 px-4 md:px-8 min-w-[600px]">
+                                    <!-- Ka. Biro Administrasi Umum - Kiri -->
+                                    <div class="text-center">
+                                        <p class="mb-8 text-sm">Malang, <span id="tanggal-cetak"></span></p>
+                                        <p class="mb-2 text-sm">Mengetahui,</p>
+                                        <p class="font-bold mb-8 text-sm">Ka. Biro Administrasi Umum</p>
+                                        <p class="font-bold underline text-sm">Olyvia Resyana Citra, S.E., M.P.</p>
+                                        <p class="text-sm">NIK. 201603220068</p>
+                                    </div>
+                                    
+                                    <!-- Kabag. Umum dan Kepegawaian - Kanan -->
+                                    <div class="text-center">
+                                        <p class="mb-8 text-sm">&nbsp;</p>
+                                        <p class="mb-2 text-sm">Mengetahui,</p>
+                                        <p class="font-bold mb-8 text-sm">Kabag. Umum dan Kepegawaian</p>
+                                        <p class="font-bold underline text-sm">Venansius Rikyansyah Edy Kurniawan, S.H.</p>
+                                        <p class="text-sm">NIK. 201904120077</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Page -->
+                <div id="qrcode" class="page hidden animate-fade-in">
+                    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <div class="gradient-bg px-4 md:px-6 py-4">
+                            <h3 class="text-white font-semibold text-base md:text-lg flex items-center gap-2">
+                                <i class="fas fa-qrcode"></i>
+                                QR Code Akses Sistem
+                            </h3>
+                        </div>
+                        
+                        <div class="p-6 md:p-8 text-center">
+                            <p class="text-gray-600 mb-6">Scan QR Code berikut untuk mengakses sistem ini dari perangkat mobile:</p>
+                            
+                            <div class="flex justify-center mb-6">
+                                <div id="qrcode-container" class="p-4 bg-white rounded-xl shadow-lg inline-block"></div>
+                            </div>
+                            
+                            <div class="bg-blue-50 rounded-xl p-4 mb-6">
+                                <p class="text-sm text-gray-600 mb-2">Atau akses langsung melalui link:</p>
+                                <p id="current-url" class="text-blue-600 font-mono text-sm break-all"></p>
+                            </div>
+                            
+                            <button onclick="downloadQRCode()" class="gradient-bg text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2 btn-touch mx-auto">
+                                <i class="fas fa-download"></i>
+                                Download QR Code
+                            </button>
+                            
+                            <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                                <div class="bg-gray-50 p-4 rounded-xl">
+                                    <i class="fas fa-mobile-alt text-2xl text-blue-500 mb-2"></i>
+                                    <h4 class="font-semibold text-sm mb-1">Mobile Friendly</h4>
+                                    <p class="text-xs text-gray-500">Akses dari smartphone dengan tampilan optimal</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-xl">
+                                    <i class="fas fa-wifi text-2xl text-green-500 mb-2"></i>
+                                    <h4 class="font-semibold text-sm mb-1">Online Access</h4>
+                                    <p class="text-xs text-gray-500">Akses dari mana saja dengan koneksi internet</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-xl">
+                                    <i class="fas fa-sync text-2xl text-purple-500 mb-2"></i>
+                                    <h4 class="font-semibold text-sm mb-1">Real-time Data</h4>
+                                    <p class="text-xs text-gray-500">Data tersimpan secara lokal di browser</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Copyright Footer -->
+            <footer class="bg-white border-t border-gray-200 mt-auto mb-16 md:mb-0">
+                <div class="px-4 md:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-2 text-center md:text-left">
+                    <div class="text-xs md:text-sm text-gray-600">
+                        <span class="font-semibold">&copy; 2026</span> | Build By Venansius Rikyansyah Edy Kurniawan
+                    </div>
+                    <div class="text-xs md:text-sm text-gray-500">
+                        Sistem Peminjaman Alat | Biro Administrasi Umum
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        Dikembangkan untuk UKWK Malang
+                    </div>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-nav">
+        <button onclick="showPage('dashboard')" class="mobile-nav-item active" id="mobile-nav-dashboard">
+            <i class="fas fa-home"></i>
+            <span>Beranda</span>
+        </button>
+        <button onclick="showPage('peminjaman')" class="mobile-nav-item" id="mobile-nav-peminjaman">
+            <i class="fas fa-hand-holding"></i>
+            <span>Pinjam</span>
+        </button>
+        <button onclick="showPage('pengembalian')" class="mobile-nav-item" id="mobile-nav-pengembalian">
+            <i class="fas fa-undo"></i>
+            <span>Kembali</span>
+        </button>
+        <button onclick="showPage('laporan')" class="mobile-nav-item" id="mobile-nav-laporan">
+            <i class="fas fa-print"></i>
+            <span>Laporan</span>
+        </button>
+        <button onclick="showPage('qrcode')" class="mobile-nav-item" id="mobile-nav-qrcode">
+            <i class="fas fa-qrcode"></i>
+            <span>QR Code</span>
+        </button>
+    </nav>
+
+    <!-- Modal Edit dengan Card Selection -->
+    <div id="modal-edit" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-4 md:p-6 w-full max-w-4xl mx-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg md:text-xl font-bold mb-4">Edit Peminjaman</h3>
+            <input type="hidden" id="edit-id">
+            
+            <div class="space-y-4">
+                <!-- Ruangan Dropdown -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ruangan</label>
+                    <select id="edit-ruangan" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 outline-none text-base">
+                        <option value="Ruang 1.12">Ruang 1.12</option>
+                        <option value="Ruang 1.17">Ruang 1.17</option>
+                        <option value="Ruang 1.18/Lab Mesin">Ruang 1.18/Lab Mesin</option>
+                        <option value="Ruang 1.20/Lab Bahasa">Ruang 1.20/Lab Bahasa</option>
+                        <option value="Ruang 1.21/Lab Beton">Ruang 1.21/Lab Beton</option>
+                        <option value="Ruang 2.2">Ruang 2.2</option>
+                        <option value="Ruang 2.3">Ruang 2.3</option>
+                        <option value="Ruang 2.4">Ruang 2.4</option>
+                        <option value="Ruang 2.5">Ruang 2.5</option>
+                        <option value="Ruang 2.6">Ruang 2.6</option>
+                        <option value="Ruang Lab Sistem Informasi">Ruang Lab Sistem Informasi</option>
+                        <option value="Ruang Lab Pengolahan/Kimia">Ruang Lab Pengolahan/Kimia</option>
+                        <option value="Ruang 2.11/Rapat Dosen">Ruang 2.11/Rapat Dosen</option>
+                        <option value="Ruang 2.12">Ruang 2.12</option>
+                        <option value="Ruang 2.13">Ruang 2.13</option>
+                        <option value="Ruang 2.14">Ruang 2.14</option>
+                        <option value="Ruang Aula St. Thomas Aquino">Ruang Aula St. Thomas Aquino</option>
+                        <option value="Ruang 3.1">Ruang 3.1</option>
+                        <option value="Ruang 3.2">Ruang 3.2</option>
+                        <option value="Ruang 3.3">Ruang 3.3</option>
+                        <option value="Ruang Lab Komputer FEB">Ruang Lab Komputer FEB</option>
+                        <option value="Ruang Lab Manual FEB">Ruang Lab Manual FEB</option>
+                        <option value="Ruang Perpustakaan">Ruang Perpustakaan</option>
+                        <option value="Ruang Serbaguna Lantai 4">Ruang Serbaguna Lantai 4</option>
+                    </select>
+                </div>
+                
+                <!-- Barang Selection Display -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Barang Dipilih</label>
+                    <div id="edit-selected-barang-display" class="min-h-[50px] p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-wrap gap-2">
+                        <span class="text-gray-400 text-sm italic">Belum memilih barang</span>
+                    </div>
+                </div>
+                
+                <!-- Barang Card Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Pilih Barang (Bisa lebih dari 1)</label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 md:gap-4" id="edit-barang-selection-container">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal()" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 btn-touch font-medium">Batal</button>
+                <button onclick="simpanEdit()" class="flex-1 px-4 py-3 gradient-bg text-white rounded-lg btn-touch font-medium">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // SISTEM PEMINJAMAN ALAT - UKWK MALANG
+        // ==========================================
+
+        // Data Storage - menggunakan LocalStorage
+        let peminjamanList = JSON.parse(localStorage.getItem('peminjaman')) || [];
+        let pengembalianList = JSON.parse(localStorage.getItem('pengembalian')) || [];
+
+        // Stok Barang (Initial Stock)
+        const stokBarang = {
+            'LCD': 8,
+            'Kabel Roll': 10,
+            'Kunci Ruangan': 15,
+            'Spidol': 10,
+            'Remote AC': 10,
+            'Remote LCD': 6,
+            'Penghapus': 5
+        };
+
+        // Barang yang sedang dipilih (untuk form tambah)
+        let selectedBarang = {};
+        
+        // Barang yang sedang dipilih (untuk edit)
+        let editSelectedBarang = {};
+        
+        // ID peminjaman yang sedang diedit
+        let currentEditId = null;
+
+        // Icons untuk barang
+        const icons = {
+            'LCD': 'fa-tv',
+            'Kabel Roll': 'fa-plug',
+            'Kunci Ruangan': 'fa-key',
+            'Spidol': 'fa-marker',
+            'Remote AC': 'fa-snowflake',
+            'Remote LCD': 'fa-desktop',
+            'Penghapus': 'fa-eraser'
+        };
+
+        // QR Code instance
+        let qrCodeInstance = null;
+
+        // Orientation handling
+        let currentOrientation = window.screen.orientation ? window.screen.orientation.type : 'portrait-primary';
+
+        // Initialize saat halaman load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check initial orientation
+            handleOrientationChange();
+            
+            // Listen for orientation changes
+            if (window.screen.orientation) {
+                window.screen.orientation.addEventListener('change', handleOrientationChange);
+            } else {
+                // Fallback for older browsers
+                window.addEventListener('resize', handleOrientationChange);
+            }
+            
+            // Also listen to resize for responsive adjustments
+            window.addEventListener('resize', debounce(handleOrientationChange, 250));
+            
+            updateDate();
+            updateStats();
+            renderStok();
+            renderBarangSelection();
+            renderTables();
+            setInterval(updateDate, 1000);
+            
+            // Set default jam pinjam ke waktu sekarang
+            const now = new Date();
+            const timeString = now.toTimeString().slice(0, 5);
+            document.getElementById('jam-pinjam').value = timeString;
+            
+            // Generate QR Code
+            generateQRCode();
+        });
+
+        // Debounce function untuk performance
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Handle orientation change
+        function handleOrientationChange() {
+            const indicator = document.getElementById('orientation-indicator');
+            const appContainer = document.getElementById('app-container');
+            const sidebar = document.getElementById('sidebar');
+            
+            // Show indicator
+            indicator.classList.add('show');
+            
+            // Detect orientation
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const isMobile = window.innerWidth < 1024;
+            const isCompact = window.innerHeight < 600;
+            
+            // Apply appropriate classes
+            if (isLandscape && isMobile && isCompact) {
+                // Landscape mobile compact mode
+                appContainer.classList.add('orientation-adaptive');
+                sidebar.classList.add('sidebar-adaptive');
+                
+                // Adjust grids for landscape
+                document.querySelectorAll('.stats-grid').forEach(el => {
+                    el.classList.add('stats-grid-landscape');
+                });
+                document.querySelectorAll('.form-grid').forEach(el => {
+                    el.classList.add('form-grid-landscape');
+                });
+                document.querySelectorAll('.barang-grid').forEach(el => {
+                    el.classList.add('barang-grid-landscape');
+                });
+            } else {
+                // Reset classes
+                appContainer.classList.remove('orientation-adaptive');
+                sidebar.classList.remove('sidebar-adaptive');
+                
+                document.querySelectorAll('.stats-grid').forEach(el => {
+                    el.classList.remove('stats-grid-landscape');
+                });
+                document.querySelectorAll('.form-grid').forEach(el => {
+                    el.classList.remove('form-grid-landscape');
+                });
+                document.querySelectorAll('.barang-grid').forEach(el => {
+                    el.classList.remove('barang-grid-landscape');
+                });
+            }
+            
+            // Re-render components that need adjustment
+            setTimeout(() => {
+                renderStok();
+                renderBarangSelection();
+                if (currentEditId) {
+                    renderEditBarangSelection(currentEditId);
+                }
+                
+                // Hide indicator after adjustment
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 500);
+            }, 300);
+            
+            // Update current orientation
+            currentOrientation = isLandscape ? 'landscape' : 'portrait';
+        }
+
+        // Toggle Sidebar untuk Mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.mobile-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        // Generate QR Code
+        function generateQRCode() {
+            const container = document.getElementById('qrcode-container');
+            const urlDisplay = document.getElementById('current-url');
+            const currentURL = window.location.href;
+            
+            urlDisplay.textContent = currentURL;
+            
+            // Hapus QR code lama jika ada
+            container.innerHTML = '';
+            
+            // Generate QR code baru
+            qrCodeInstance = new QRCode(container, {
+                text: currentURL,
+                width: 200,
+                height: 200,
+                colorDark: "#1e3a8a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Download QR Code
+        function downloadQRCode() {
+            const container = document.getElementById('qrcode-container');
+            const img = container.querySelector('img');
+            
+            if (img) {
+                const link = document.createElement('a');
+                link.download = 'QRCode_Sistem_Peminjaman_UKWK.png';
+                link.href = img.src;
+                link.click();
+            } else {
+                // Fallback untuk canvas
+                const canvas = container.querySelector('canvas');
+                if (canvas) {
+                    const link = document.createElement('a');
+                    link.download = 'QRCode_Sistem_Peminjaman_UKWK.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                }
+            }
+        }
+
+        // Update tanggal dan waktu realtime
+        function updateDate() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+            document.getElementById('tanggal-cetak').textContent = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        // Navigasi halaman
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show selected page
+            document.getElementById(pageName).classList.remove('hidden');
+            
+            // Update title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'peminjaman': 'Data Peminjaman',
+                'pengembalian': 'Data Pengembalian',
+                'laporan': 'Cetak Laporan',
+                'qrcode': 'QR Code Akses'
+            };
+            document.getElementById('page-title').textContent = titles[pageName];
+            
+            // Update active state di sidebar
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById('nav-' + pageName)?.classList.add('active');
+            
+            // Update active state di mobile nav
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.getElementById('mobile-nav-' + pageName)?.classList.add('active');
+            
+            // Close sidebar on mobile after navigation
+            if (window.innerWidth < 1024) {
+                toggleSidebar();
+            }
+            
+            // Refresh data
+            if (pageName === 'peminjaman') renderPeminjamanTable();
+            if (pageName === 'pengembalian') renderPengembalianTable();
+            if (pageName === 'laporan') renderPreviewLaporan();
+            if (pageName === 'qrcode') generateQRCode();
+        }
+
+        // Hitung stok tersedia (dengan exclude untuk edit)
+        function getStokTersedia(excludeId = null) {
+            const dipinjam = {};
+            peminjamanList.forEach(p => {
+                if (excludeId && p.id === excludeId) return;
+                
+                if (Array.isArray(p.barang)) {
+                    p.barang.forEach(b => {
+                        dipinjam[b.nama] = (dipinjam[b.nama] || 0) + b.qty;
+                    });
+                } else {
+                    dipinjam[p.barang] = (dipinjam[p.barang] || 0) + 1;
+                }
+            });
+            
+            const tersedia = {};
+            for (let barang in stokBarang) {
+                tersedia[barang] = stokBarang[barang] - (dipinjam[barang] || 0);
+            }
+            return tersedia;
+        }
+
+        // Render stok barang
+        function renderStok() {
+            const tersedia = getStokTersedia();
+            const container = document.getElementById('stok-container');
+            container.innerHTML = '';
+            
+            // Adjust grid based on orientation
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const isCompact = window.innerHeight < 600;
+            
+            if (isLandscape && isCompact) {
+                container.classList.remove('grid-cols-2', 'md:grid-cols-4', 'lg:grid-cols-7');
+                container.classList.add('grid-cols-7');
+            }
+            
+            for (let barang in tersedia) {
+                const card = document.createElement('div');
+                card.className = `p-3 md:p-4 rounded-xl text-center ${tersedia[barang] > 0 ? 'bg-blue-50 border-2 border-blue-200' : 'bg-red-50 border-2 border-red-200'}`;
+                card.innerHTML = `
+                    <i class="fas ${icons[barang]} text-2xl md:text-3xl ${tersedia[barang] > 0 ? 'text-blue-500' : 'text-red-500'} mb-2"></i>
+                    <p class="text-xs font-medium text-gray-600 mb-1">${barang}</p>
+                    <p class="text-xl md:text-2xl font-bold ${tersedia[barang] > 0 ? 'text-blue-600' : 'text-red-600'}">${tersedia[barang]}</p>
+                    <p class="text-xs text-gray-400">tersedia</p>
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        // Render barang selection cards (untuk form tambah)
+        function renderBarangSelection() {
+            const tersedia = getStokTersedia();
+            const container = document.getElementById('barang-selection-container');
+            container.innerHTML = '';
+            
+            // Adjust grid based on orientation
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const isCompact = window.innerHeight < 600;
+            
+            if (isLandscape && isCompact) {
+                container.classList.remove('grid-cols-2', 'md:grid-cols-4', 'lg:grid-cols-7');
+                container.classList.add('grid-cols-7');
+            }
+            
+            for (let barang in stokBarang) {
+                const card = createBarangCard(barang, tersedia[barang], selectedBarang, 'main');
+                container.appendChild(card);
+            }
+        }
+
+        // Render barang selection untuk edit
+        function renderEditBarangSelection(excludeId) {
+            const tersedia = getStokTersedia(excludeId);
+            const container = document.getElementById('edit-barang-selection-container');
+            container.innerHTML = '';
+            
+            // Adjust grid based on orientation
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const isCompact = window.innerHeight < 600;
+            
+            if (isLandscape && isCompact) {
+                container.classList.remove('grid-cols-2', 'md:grid-cols-4', 'lg:grid-cols-7');
+                container.classList.add('grid-cols-7');
+            }
+            
+            for (let barang in stokBarang) {
+                const currentQty = editSelectedBarang[barang] || 0;
+                const available = tersedia[barang] + currentQty;
+                
+                const card = createBarangCard(barang, available, editSelectedBarang, 'edit');
+                container.appendChild(card);
+            }
+        }
+
+        // Create barang card (reusable untuk main dan edit)
+        function createBarangCard(barang, available, selectionObj, mode) {
+            const card = document.createElement('div');
+            const isSelected = selectionObj[barang] > 0;
+            const qty = selectionObj[barang] || 0;
+            
+            // Compact mode for landscape
+            const isCompact = window.innerHeight < 600 && window.innerWidth > window.innerHeight;
+            const compactClass = isCompact ? 'p-2' : 'p-3 md:p-4';
+            const iconSize = isCompact ? 'text-xl' : 'text-2xl md:text-3xl';
+            
+            card.className = `barang-card bg-white ${compactClass} rounded-xl shadow-md relative ${available <= 0 && !isSelected ? 'opacity-50 cursor-not-allowed' : ''}`;
+            card.onclick = () => {
+                if (mode === 'main') {
+                    toggleBarang(barang);
+                } else {
+                    toggleEditBarang(barang);
+                }
+            };
+            
+            card.innerHTML = `
+                <div class="check-icon absolute top-2 right-2 w-5 h-5 md:w-6 md:h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="text-center">
+                    <i class="fas ${icons[barang]} ${iconSize} ${available > 0 || isSelected ? 'text-blue-500' : 'text-gray-400'} mb-2"></i>
+                    <p class="text-xs font-medium text-gray-700 mb-1 md:mb-2">${barang}</p>
+                    <p class="text-xs text-gray-400 mb-1 md:mb-2">Stok: ${available}</p>
+                    ${isSelected ? `
+                        <div class="flex items-center justify-center gap-2 bg-blue-100 rounded-lg p-1" onclick="event.stopPropagation()">
+                            <button class="qty-btn bg-white text-blue-600" onclick="updateQty('${barang}', -1, '${mode}')">
+                                <i class="fas fa-minus text-xs"></i>
+                            </button>
+                            <span class="text-sm font-bold text-blue-700 w-6 text-center">${qty}</span>
+                            <button class="qty-btn bg-white text-blue-600" onclick="updateQty('${barang}', 1, '${mode}')">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            if (isSelected) {
+                card.classList.add('selected');
+            }
+            
+            return card;
+        }
+
+        // Toggle barang selection (main form)
+        function toggleBarang(barang) {
+            const tersedia = getStokTersedia();
+            if (tersedia[barang] <= 0 && !selectedBarang[barang]) return;
+            
+            if (selectedBarang[barang]) {
+                delete selectedBarang[barang];
+            } else {
+                selectedBarang[barang] = 1;
+            }
+            
+            renderBarangSelection();
+            updateSelectedBarangDisplay();
+        }
+
+        // Toggle barang selection (edit form)
+        function toggleEditBarang(barang) {
+            const tersedia = getStokTersedia(currentEditId);
+            const currentQty = editSelectedBarang[barang] || 0;
+            const available = tersedia[barang] + currentQty;
+            
+            if (available <= 0 && !editSelectedBarang[barang]) return;
+            
+            if (editSelectedBarang[barang]) {
+                delete editSelectedBarang[barang];
+            } else {
+                editSelectedBarang[barang] = 1;
+            }
+            
+            renderEditBarangSelection(currentEditId);
+            updateEditSelectedBarangDisplay();
+        }
+
+        // Update quantity (reusable)
+        function updateQty(barang, change, mode) {
+            let selectionObj, renderFn, updateDisplayFn, excludeId;
+            
+            if (mode === 'main') {
+                selectionObj = selectedBarang;
+                renderFn = renderBarangSelection;
+                updateDisplayFn = updateSelectedBarangDisplay;
+                excludeId = null;
+            } else {
+                selectionObj = editSelectedBarang;
+                renderFn = () => renderEditBarangSelection(currentEditId);
+                updateDisplayFn = updateEditSelectedBarangDisplay;
+                excludeId = currentEditId;
+            }
+            
+            const tersedia = getStokTersedia(excludeId);
+            const currentQty = selectionObj[barang] || 0;
+            const maxAvailable = mode === 'edit' ? tersedia[barang] + currentQty : tersedia[barang];
+            const newQty = currentQty + change;
+            
+            if (newQty <= 0) {
+                delete selectionObj[barang];
+            } else if (newQty <= maxAvailable) {
+                selectionObj[barang] = newQty;
+            } else {
+                alert(`Stok ${barang} hanya tersedia ${maxAvailable} unit!`);
+                return;
+            }
+            
+            renderFn();
+            updateDisplayFn();
+        }
+
+        // Update display barang yang dipilih (main)
+        function updateSelectedBarangDisplay() {
+            const container = document.getElementById('selected-barang-display');
+            const items = Object.entries(selectedBarang);
+            
+            if (items.length === 0) {
+                container.innerHTML = '<span class="text-gray-400 text-sm italic">Belum memilih barang</span>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            items.forEach(([barang, qty]) => {
+                const tag = document.createElement('div');
+                tag.className = 'selected-item-tag bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2';
+                tag.innerHTML = `
+                    ${barang} (${qty})
+                    <button onclick="removeBarang('${barang}')" class="text-blue-600 hover:text-blue-800 btn-touch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        // Update display barang yang dipilih (edit)
+        function updateEditSelectedBarangDisplay() {
+            const container = document.getElementById('edit-selected-barang-display');
+            const items = Object.entries(editSelectedBarang);
+            
+            if (items.length === 0) {
+                container.innerHTML = '<span class="text-gray-400 text-sm italic">Belum memilih barang</span>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            items.forEach(([barang, qty]) => {
+                const tag = document.createElement('div');
+                tag.className = 'selected-item-tag bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2';
+                tag.innerHTML = `
+                    ${barang} (${qty})
+                    <button onclick="removeEditBarang('${barang}')" class="text-blue-600 hover:text-blue-800 btn-touch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+
+        // Remove barang dari selection (main)
+        function removeBarang(barang) {
+            delete selectedBarang[barang];
+            renderBarangSelection();
+            updateSelectedBarangDisplay();
+        }
+
+        // Remove barang dari selection (edit)
+        function removeEditBarang(barang) {
+            delete editSelectedBarang[barang];
+            renderEditBarangSelection(currentEditId);
+            updateEditSelectedBarangDisplay();
+        }
+
+        // Tambah peminjaman baru
+        function tambahPeminjaman() {
+            const nama = document.getElementById('nama').value;
+            const nim = document.getElementById('nim').value;
+            const wa = document.getElementById('wa').value;
+            const ruangan = document.getElementById('ruangan').value;
+            const jamPinjam = document.getElementById('jam-pinjam').value;
+            
+            if (!nama || !nim || !wa || !ruangan || !jamPinjam) {
+                alert('Mohon lengkapi semua field!');
+                return;
+            }
+            
+            const barangKeys = Object.keys(selectedBarang);
+            if (barangKeys.length === 0) {
+                alert('Mohon pilih minimal 1 barang!');
+                return;
+            }
+            
+            // Cek stok untuk semua barang
+            const tersedia = getStokTersedia();
+            for (let barang of barangKeys) {
+                if (selectedBarang[barang] > tersedia[barang]) {
+                    alert(`Stok ${barang} tidak mencukupi! Tersedia: ${tersedia[barang]}`);
+                    return;
+                }
+            }
+            
+            // Format barang array
+            const barangArray = barangKeys.map(barang => ({
+                nama: barang,
+                qty: selectedBarang[barang]
+            }));
+            
+            const peminjaman = {
+                id: Date.now(),
+                nama,
+                nim,
+                wa,
+                ruangan,
+                jamPinjam,
+                barang: barangArray,
+                                tanggal: new Date().toISOString(),
+                status: 'dipinjam'
+            };
+            
+            peminjamanList.push(peminjaman);
+            localStorage.setItem('peminjaman', JSON.stringify(peminjamanList));
+            
+            // Reset form dan selection
+            document.getElementById('form-peminjaman').reset();
+            selectedBarang = {};
+            const now = new Date();
+            document.getElementById('jam-pinjam').value = now.toTimeString().slice(0, 5);
+            
+            renderBarangSelection();
+            updateSelectedBarangDisplay();
+            updateStats();
+            renderStok();
+            alert('Peminjaman berhasil ditambahkan!');
+        }
+
+        // Render semua tabel
+        function renderTables() {
+            renderPeminjamanTable();
+            renderPengembalianTable();
+        }
+
+        // Format barang untuk display
+        function formatBarang(barang) {
+            if (Array.isArray(barang)) {
+                return barang.map(b => `${b.nama} (${b.qty})`).join(', ');
+            }
+            return barang;
+        }
+
+        // Render tabel peminjaman
+        function renderPeminjamanTable() {
+            const tbody = document.getElementById('tabel-peminjaman');
+            tbody.innerHTML = '';
+            
+            if (peminjamanList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">Tidak ada data peminjaman</td></tr>';
+                return;
+            }
+            
+            peminjamanList.forEach((p, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${p.nama}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">${p.nim}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span class="px-2 md:px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                            ${formatBarang(p.barang)}
+                        </span>
+                    </td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">${p.ruangan}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.jamPinjam}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                        <span class="px-2 md:px-3 py-1 rounded-full text-xs font-semibold status-pinjam text-white">Dipinjam</span>
+                    </td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center gap-2">
+                            <button onclick="prosesPengembalian(${p.id})" class="text-green-600 hover:text-green-900 btn-touch" title="Pengembalian">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </button>
+                            <button onclick="editPeminjaman(${p.id})" class="text-blue-600 hover:text-blue-900 btn-touch" title="Edit">
+                                <i class="fas fa-edit text-xl"></i>
+                            </button>
+                            <button onclick="reminderWA(${p.id})" class="text-green-500 hover:text-green-700 btn-touch" title="Reminder WA">
+                                <i class="fab fa-whatsapp text-xl"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render tabel pengembalian
+        function renderPengembalianTable() {
+            const tbody = document.getElementById('tabel-pengembalian');
+            tbody.innerHTML = '';
+            
+            const sorted = [...pengembalianList].sort((a, b) => b.id - a.id);
+            
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">Tidak ada data pengembalian</td></tr>';
+                return;
+            }
+            
+            sorted.forEach((p, index) => {
+                const durasi = hitungDurasi(p.jamPinjam, p.jamKembali);
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${p.nama}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">${p.nim}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span class="px-2 md:px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                            ${formatBarang(p.barang)}
+                        </span>
+                    </td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">${p.ruangan}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.jamPinjam}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.jamKembali}</td>
+                    <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hidden sm:table-cell">${durasi}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Hitung durasi peminjaman
+        function hitungDurasi(jamPinjam, jamKembali) {
+            const [jam1, menit1] = jamPinjam.split(':').map(Number);
+            const [jam2, menit2] = jamKembali.split(':').map(Number);
+            
+            const totalMenit1 = jam1 * 60 + menit1;
+            const totalMenit2 = jam2 * 60 + menit2;
+            
+            let selisih = totalMenit2 - totalMenit1;
+            if (selisih < 0) selisih += 24 * 60;
+            
+            const jam = Math.floor(selisih / 60);
+            const menit = selisih % 60;
+            
+            return `${jam}j ${menit}m`;
+        }
+
+        // Proses pengembalian
+        function prosesPengembalian(id) {
+            if (!confirm('Yakin ingin memproses pengembalian?')) return;
+            
+            const index = peminjamanList.findIndex(p => p.id === id);
+            if (index === -1) return;
+            
+            const peminjaman = peminjamanList[index];
+            const now = new Date();
+            const jamKembali = now.toTimeString().slice(0, 5);
+            
+            const pengembalian = {
+                ...peminjaman,
+                jamKembali,
+                id: Date.now()
+            };
+            
+            pengembalianList.push(pengembalian);
+            peminjamanList.splice(index, 1);
+            
+            localStorage.setItem('peminjaman', JSON.stringify(peminjamanList));
+            localStorage.setItem('pengembalian', JSON.stringify(pengembalianList));
+            
+            updateStats();
+            renderStok();
+            renderPeminjamanTable();
+            alert('Pengembalian berhasil diproses!');
+        }
+
+        // Edit peminjaman - dengan card selection
+        function editPeminjaman(id) {
+            const p = peminjamanList.find(x => x.id === id);
+            if (!p) return;
+            
+            currentEditId = id;
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-ruangan').value = p.ruangan;
+            
+            // Convert barang array ke object
+            editSelectedBarang = {};
+            if (Array.isArray(p.barang)) {
+                p.barang.forEach(b => {
+                    editSelectedBarang[b.nama] = b.qty;
+                });
+            } else {
+                editSelectedBarang[p.barang] = 1;
+            }
+            
+            renderEditBarangSelection(id);
+            updateEditSelectedBarangDisplay();
+            
+            document.getElementById('modal-edit').classList.remove('hidden');
+            document.getElementById('modal-edit').classList.add('flex');
+        }
+
+        // Tutup modal
+        function closeModal() {
+            document.getElementById('modal-edit').classList.add('hidden');
+            document.getElementById('modal-edit').classList.remove('flex');
+            currentEditId = null;
+            editSelectedBarang = {};
+        }
+
+        // Simpan edit
+        function simpanEdit() {
+            const id = parseInt(document.getElementById('edit-id').value);
+            const ruanganBaru = document.getElementById('edit-ruangan').value;
+            
+            const index = peminjamanList.findIndex(p => p.id === id);
+            if (index === -1) return;
+            
+            // Cek stok untuk barang baru
+            const tersedia = getStokTersedia(id);
+            const barangKeys = Object.keys(editSelectedBarang);
+            
+            if (barangKeys.length === 0) {
+                alert('Mohon pilih minimal 1 barang!');
+                return;
+            }
+            
+            for (let barang of barangKeys) {
+                const currentQty = editSelectedBarang[barang];
+                const maxAvailable = tersedia[barang] + (peminjamanList[index].barang.find(b => b.nama === barang)?.qty || 0);
+                
+                if (currentQty > maxAvailable) {
+                    alert(`Stok ${barang} tidak mencukupi! Maksimal: ${maxAvailable}`);
+                    return;
+                }
+            }
+            
+            // Update data
+            const barangArray = barangKeys.map(barang => ({
+                nama: barang,
+                qty: editSelectedBarang[barang]
+            }));
+            
+            peminjamanList[index].barang = barangArray;
+            peminjamanList[index].ruangan = ruanganBaru;
+            localStorage.setItem('peminjaman', JSON.stringify(peminjamanList));
+            
+            renderStok();
+            renderPeminjamanTable();
+            closeModal();
+            alert('Data berhasil diupdate!');
+        }
+
+        // Format nomor WA ke format internasional
+        function formatWANumber(nomor) {
+            let clean = nomor.replace(/\D/g, '');
+            
+            if (clean.startsWith('0')) {
+                clean = '62' + clean.substring(1);
+            }
+            
+            if (clean.startsWith('62')) {
+                return clean;
+            }
+            
+            if (clean.length > 0 && !clean.startsWith('62')) {
+                clean = '62' + clean;
+            }
+            
+            return clean;
+        }
+
+        // Generate pesan WhatsApp yang terformat dengan baik
+        function generateWAMessage(p) {
+            const barangText = formatBarang(p.barang);
+            
+            const pesan = `*PENGINGAT PEMINJAMAN ALAT - UKWK*
+
+Halo *${p.nama}*,
+
+Berikut detail peminjaman alat Anda:
+
+📋 *NIM:* ${p.nim}
+📦 *Barang:* ${barangText}
+🏫 *Ruangan:* ${p.ruangan}
+⏰ *Jam Pinjam:* ${p.jamPinjam}
+📅 *Tanggal:* ${new Date(p.tanggal).toLocaleDateString('id-ID')}
+
+Mohon segera mengembalikan barang setelah selesai digunakan ke Biro Administrasi Umum.
+
+Terima kasih atas kerjasamanya.
+
+--
+*Biro Administrasi Umum*
+Universitas Katolik Widya Karya Malang
+📞 (0341) 553171 ext. 102`;
+
+            return pesan;
+        }
+
+        // WhatsApp redirect
+        function reminderWA(id) {
+            const p = peminjamanList.find(x => x.id === id);
+            if (!p) {
+                alert('Data peminjaman tidak ditemukan!');
+                return;
+            }
+            
+            const nomorWA = formatWANumber(p.wa);
+            
+            if (nomorWA.length < 10) {
+                alert('Nomor WhatsApp tidak valid!');
+                return;
+            }
+            
+            const pesan = generateWAMessage(p);
+            const encodedPesan = encodeURIComponent(pesan);
+            
+            const waURL = `https://wa.me/${nomorWA}?text=${encodedPesan}`;
+            
+            window.open(waURL, '_blank');
+        }
+
+        // Reminder semua peminjaman
+        function reminderAllWA() {
+            if (peminjamanList.length === 0) {
+                alert('Tidak ada peminjaman aktif!');
+                return;
+            }
+            
+            if (!confirm(`Kirim reminder ke ${peminjamanList.length} peminjam?`)) return;
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            peminjamanList.forEach((p, index) => {
+                setTimeout(() => {
+                    const nomorWA = formatWANumber(p.wa);
+                    
+                    if (nomorWA.length >= 10) {
+                        const pesan = generateWAMessage(p);
+                        const encodedPesan = encodeURIComponent(pesan);
+                        const waURL = `https://wa.me/${nomorWA}?text=${encodedPesan}`;
+                        
+                        window.open(waURL, '_blank');
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                    
+                    if (index === peminjamanList.length - 1) {
+                        setTimeout(() => {
+                            alert(`Reminder terkirim!\nBerhasil: ${successCount}\nGagal: ${failCount}`);
+                        }, 1000);
+                    }
+                }, index * 2000);
+            });
+        }
+
+        // Update statistik
+        function updateStats() {
+            document.getElementById('stat-total').textContent = peminjamanList.length + pengembalianList.length;
+            document.getElementById('stat-dipinjam').textContent = peminjamanList.length;
+            document.getElementById('stat-kembali').textContent = pengembalianList.length;
+            
+            const tersedia = getStokTersedia();
+            const totalTersedia = Object.values(tersedia).reduce((a, b) => a + b, 0);
+            document.getElementById('stat-tersedia').textContent = totalTersedia;
+        }
+
+        // Render preview laporan
+        function renderPreviewLaporan() {
+            const tbody = document.getElementById('preview-tbody');
+            tbody.innerHTML = '';
+            
+            const allData = [...peminjamanList, ...pengembalianList].sort((a, b) => b.id - a.id);
+            
+            if (allData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="border border-black px-3 py-2 text-center">Tidak ada data</td></tr>';
+                return;
+            }
+            
+            allData.forEach((p, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border border-black px-2 md:px-3 py-2 text-center">${index + 1}</td>
+                    <td class="border border-black px-2 md:px-3 py-2">${p.nama}</td>
+                    <td class="border border-black px-2 md:px-3 py-2">${p.nim}</td>
+                    <td class="border border-black px-2 md:px-3 py-2">${formatBarang(p.barang)}</td>
+                    <td class="border border-black px-2 md:px-3 py-2">${p.ruangan}</td>
+                    <td class="border border-black px-2 md:px-3 py-2">${p.jamPinjam}</td>
+                    <td class="border border-black px-2 md:px-3 py-2">${p.jamKembali || '-'}</td>
+                    <td class="border border-black px-2 md:px-3 py-2 text-center">${p.jamKembali ? 'Kembali' : 'Dipinjam'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Export PDF dengan tanda tangan
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Logo dan Header
+            doc.setFontSize(12);
+            doc.text('UNIVERSITAS KATOLIK WIDYA KARYA MALANG', 105, 20, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text('Jl. Bondowoso No. 2, Gadingkasri, Klojen, Malang 65115', 105, 27, { align: 'center' });
+            doc.text('Telp: (0341) 553171 ext. 102', 105, 32, { align: 'center' });
+            
+            doc.line(20, 38, 190, 38);
+            
+            doc.setFontSize(12);
+            doc.text('LAPORAN PEMINJAMAN ALAT', 105, 48, { align: 'center' });
+            
+            const allData = [...peminjamanList, ...pengembalianList].sort((a, b) => b.id - a.id);
+            
+            const tableData = allData.map((p, index) => [
+                index + 1,
+                p.nama,
+                p.nim,
+                formatBarang(p.barang),
+                p.ruangan,
+                p.jamPinjam,
+                p.jamKembali || '-',
+                p.jamKembali ? 'Kembali' : 'Dipinjam'
+            ]);
+            
+            doc.autoTable({
+                startY: 55,
+                head: [['No', 'Nama', 'NIM', 'Barang', 'Ruangan', 'Jam Pinjam', 'Jam Kembali', 'Status']],
+                body: tableData,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 2 },
+                headStyles: { fillColor: [30, 58, 138] }
+            });
+            
+            const finalY = doc.lastAutoTable.finalY + 20;
+            const tanggalCetak = 'Malang, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            // Ka. Biro Administrasi Umum - Kiri
+            doc.text(tanggalCetak, 30, finalY, { align: 'center' });
+            doc.text('Mengetahui,', 30, finalY + 7, { align: 'center' });
+            doc.text('Ka. Biro Administrasi Umum', 30, finalY + 14, { align: 'center' });
+            doc.text('Olyvia Resyana Citra, S.E., M.P.', 30, finalY + 35, { align: 'center' });
+            doc.text('NIK. 201603220068', 30, finalY + 42, { align: 'center' });
+            
+            // Kabag. Umum dan Kepegawaian - Kanan
+            doc.text('Mengetahui,', 170, finalY + 7, { align: 'center' });
+            doc.text('Kabag. Umum dan Kepegawaian', 170, finalY + 14, { align: 'center' });
+            doc.text('Venansius Rikyansyah Edy Kurniawan, S.H.', 170, finalY + 35, { align: 'center' });
+            doc.text('NIK. 201904120077', 170, finalY + 42, { align: 'center' });
+            
+            doc.save('Laporan_Peminjaman_Alat_UKWK.pdf');
+        }
+
+        // Export Excel
+        function exportExcel() {
+            const allData = [...peminjamanList, ...pengembalianList].sort((a, b) => b.id - a.id);
+            
+            const data = allData.map((p, index) => ({
+                'No': index + 1,
+                'Nama': p.nama,
+                'NIM': p.nim,
+                'No WA': p.wa,
+                'Barang': formatBarang(p.barang),
+                'Ruangan': p.ruangan,
+                'Jam Pinjam': p.jamPinjam,
+                'Jam Kembali': p.jamKembali || '-',
+                'Status': p.jamKembali ? 'Kembali' : 'Dipinjam',
+                'Tanggal': new Date(p.tanggal).toLocaleDateString('id-ID')
+            }));
+            
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Peminjaman Alat');
+            
+            XLSX.writeFile(wb, 'Laporan_Peminjaman_Alat_UKWK.xlsx');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('modal-edit').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Handle resize untuk responsive
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.querySelector('.mobile-overlay').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
